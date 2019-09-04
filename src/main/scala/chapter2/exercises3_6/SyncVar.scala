@@ -55,11 +55,11 @@ class SyncVar[T] extends Sync[T] {
           }
         }
       }
+      syncLock.notifyAll()
       if (cancel) {
         None
       } else {
         set = false
-        syncLock.notifyAll()
         Some(value)
       }
     }

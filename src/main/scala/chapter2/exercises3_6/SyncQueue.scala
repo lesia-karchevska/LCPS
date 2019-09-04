@@ -4,8 +4,6 @@ import scala.collection.mutable
 
 class SyncQueue[T] extends Sync[T]{
 
-
-
   private var n: Int = 0
   private val lock = new AnyRef
   private val q = new mutable.Queue[T]
@@ -45,17 +43,17 @@ class SyncQueue[T] extends Sync[T]{
     }
   }
 
-  def isFull(): Unit = {
+  def isFull(): Boolean = {
     lock.synchronized {
-      q.size < n
+      q.size == n
     }
   }
 
   def getWait(): Option[T]= {
     lock.synchronized {
       while (q.isEmpty && !cancel) lock.wait()
+      lock.notifyAll()
       if (!cancel) {
-        lock.notifyAll()
         Some(q.dequeue())
       } else {
         None
