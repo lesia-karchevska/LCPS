@@ -7,7 +7,6 @@ import scala.annotation.tailrec
 class ConcurrentSortedList[T] (implicit val ord: Ordering[T]){
 
   //first version of the sorted list
-  class SortedLinkedList[T]
 
   val parallelism = Runtime.getRuntime.availableProcessors
   val buckets = new Array[AtomicReference[List[T]]](parallelism)
