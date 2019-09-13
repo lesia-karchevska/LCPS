@@ -4,6 +4,21 @@ import java.util.concurrent.atomic.AtomicReference
 
 import scala.annotation.tailrec
 
+/*
+Chapter 3. Exercises 3 - 4. Implement a ConcurrentSortedList class, which implements a concurrent
+sorted list abstraction:
+class ConcurrentSortedList[T](implicit val ord: Ordering[T]) {
+  def add(x: T): Unit = ???
+  def iterator: Iterator[T] = ???
+}
+Under the hood, the ConcurrentSortedList class should use a linked list
+of atomic references. Ensure that your implementation is lock-free and avoids
+ABA problems.
+The Iterator object returned by the iterator method must correctly
+traverse the elements of the list in ascending order under the assumption that
+there are no concurrent invocations of the add method.
+*/
+
 class ConcurrentSortedList_v2[T](implicit ord: Ordering[T]) {
 
   class Node[T] {

@@ -4,6 +4,24 @@ import java.util.concurrent.atomic.AtomicReference
 
 import scala.annotation.tailrec
 
+/* Chapter 3. Exercise 9. Augment the lock-free pool implementation from this chapter with a foreach
+operation, used to traverse all the elements in the pool. Then make another
+version of foreach that is both lock-free and linearizable.  */
+
+// structure of a single bucket of the pool:
+//            head: AtomicReference - moves rightwards to a new node, unique for a single bucket
+//      _ _ _ _ _ _ _ _ _|_ _ _ _ _
+//     I          stamp           I
+//     I                          I
+//     I      AtomicReference     I              AtomicReference
+//     I    _________|_________   I           ___________|_______
+//     I   I     valid        I   I          I      valid        I
+//     I   I                  I   I          I                   I
+//     I   I      node--------I------------->I      node --------------------> ...
+//     I   I__________________I   I          I___________________I
+//     I_ _ _ _ _ _ _ _ _ _ _ _ _ I                    ^foreach points at these atomic references
+//
+
 class LockFreeSyncPool[T] {
   class Node[T] {
     var value: Option[T] = None
@@ -66,6 +84,12 @@ class LockFreeSyncPool[T] {
               head.compareAndSet(current, (stamp + 1, nextRef))
               retry()
             } else {
+              // at this point the head is not shifted, i.e. the element being removed
+              // is not physically removed from the bucket, this operation consists of two steps
+              // (based on work by Harris https://www.microsoft.com/en-us/research/wp-content/uploads/2001/10/2001-disc.pdf)
+              // any other thread  executing remove() or add(), having encountered invalid state of the head,
+              // will first perform cleanup, i.e. shift the head to the next element.
+              // At any given moment in time the pool can contain only one node in an invalid state
               if (nodeRef.compareAndSet(currentElem, (false, node))) {
                 node.value
               } else retry()
@@ -108,6 +132,7 @@ class LockFreeSyncPool[T] {
             iterate(node.next, func)
         }
       }
+      // iterator can encounter several nodes in an invalid state, in which case it omits them
       case (false, node) => iterate(node.next, func)
     }
   }
