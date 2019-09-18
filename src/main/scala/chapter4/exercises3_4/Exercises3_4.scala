@@ -1,9 +1,9 @@
-package chapter4.exercise3
+package chapter4.exercises3_4
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-object Exercise3 extends App {
+object Exercises3_4 extends App {
 
   private val ec: ExecutionContext = ExecutionContext.fromExecutor(
     new java.util.concurrent.ForkJoinPool(4))
@@ -17,6 +17,19 @@ object Exercise3 extends App {
   future.exists(i => 3/i > 0).onComplete(t => t match {
     case Success(v) => println("success: " + v)
     case Failure(f) => println("fail: " + f)
+  })(ec)
+
+  Thread.sleep(1000)
+
+  val futureP = new FutureOpPromise[Int](Future.apply({
+    Thread.sleep(500)
+    throw new Exception
+  })(ec))
+
+
+  futureP.exists(i => 3/i > 0).onComplete(t => t match {
+    case Success(v) => println("success: " + v)
+    case Failure(f) => println("fail: " + f) //this never happens
   })(ec)
 
   Thread.sleep(1000)
