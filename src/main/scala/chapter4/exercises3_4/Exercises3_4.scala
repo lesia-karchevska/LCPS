@@ -33,4 +33,15 @@ object Exercises3_4 extends App {
   })(ec)
 
   Thread.sleep(1000)
+
+  val future_v2 = new FutureOp[Int](Future.apply({
+    0
+  })(ec))
+
+  future_v2.exists(i => 3/i > 0).onComplete(t => t match {
+    case Success(v) => println("success: " + v)
+    case Failure(f) => println("fail: " + f) //this never happens
+  })(ec)
+
+  Thread.sleep(1000)
 }

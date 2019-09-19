@@ -23,4 +23,8 @@ class FutureOp[T](val self: Future[T]) {
       }
     })(ec)
   }
+
+  def exists_v2(p: T => Boolean): Future[Boolean] = {
+    self.map(p)(ec).recover({ case _ => false })(ec)
+  }
 }
