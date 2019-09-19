@@ -1,4 +1,4 @@
-package chapter4.exercises3_4
+package chapter4.exercise3_4
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
