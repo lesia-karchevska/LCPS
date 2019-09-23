@@ -29,4 +29,9 @@ object ScatterGather {
     })
     p.future
   }
+
+  def scatterGather_v2[T](tasks: Seq[() => T]): Future[Seq[T]] = {
+
+    tasks.map(task => Future {  println("Hello from " + Thread.currentThread.getName + " !"); task() }).foldLeft(Future { Seq(): Seq[T] })((fs, f) => fs.flatMap(s => f.map(res => res +: s)))
+  }
 }

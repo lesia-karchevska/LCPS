@@ -13,6 +13,7 @@ object Exercise9 extends App {
 
     () => {
       Thread.sleep(sleep)
+      println("random task produced " + value)
       value
     }
   }
@@ -20,6 +21,14 @@ object Exercise9 extends App {
   val future = ScatterGather.scatterGather(Range(0, 15).map(i => createRandomTask()))
   Await.result(future, Duration.Inf)
   future.value match {
+    case Some(Success(seq)) => println(seq)
+  }
+
+  println("Testing second version of scatterGather that uses flatMap combinator")
+
+  val future_v2 = ScatterGather.scatterGather_v2(Range(0, 15).map(i => createRandomTask()))
+  Await.result(future_v2, Duration.Inf)
+  future_v2.value match {
     case Some(Success(seq)) => println(seq)
   }
 }
