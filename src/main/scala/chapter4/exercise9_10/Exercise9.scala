@@ -1,4 +1,4 @@
-package chapter4.exercise9
+package chapter4.exercise9_10
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
