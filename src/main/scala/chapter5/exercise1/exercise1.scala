@@ -4,6 +4,7 @@ object exercise1 extends App {
 
   class SimpleObject[T] (val x: T, val y: String, val z: T)
 
+  //method taken from chapter 5
   @volatile var dummy: Any = _
   def timed[T](body: =>T): Double = {
     val start = System.nanoTime
