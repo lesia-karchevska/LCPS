@@ -6,8 +6,10 @@ import scala.collection.parallel.{Combiner, ParSeq, SeqSplitter}
 class ParString(val str: String) extends ParSeq[Char] {
   def apply(i: Int) = str.charAt(i)
   def length = str.length
-  def splitter = new ParStringSplitter(str, 0, str.length)
+  override def splitter = new ParStringSplitter(str, 0, str.length)
   def seq = new collection.immutable.WrappedString(str)
+
+  override def newCombiner: Combiner[Char, ParString] = new ParStringCombiner
 
   class ParStringSplitter(val s: String, var i: Int, val limit: Int) extends SeqSplitter[Char] {
     final def hasNext = i < limit
@@ -24,8 +26,6 @@ class ParString(val str: String) extends ParSeq[Char] {
       if (rem >= 2) psplit(rem / 2, rem - rem / 2)
       else Seq(this)
     }
-
-    def newCombiner: Combiner[Char, ParString] = new ParStringCombiner
 
     def psplit(sizes: Int*): Seq[ParStringSplitter] = {
       val ss = for (sz <- sizes) yield {
