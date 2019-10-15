@@ -107,4 +107,26 @@ object QuadNode {
       allocateBody(body, getNextQuad(body, node))
     }
   }
+
+  def getCenterAndMass(node: QuadNode): BodyImpl = {
+    node match {
+      case QuadNil => BodyImpl(new Point(0, 0), 0)
+      case t: QuadTree => {
+        t.body match {
+          case BodyNil => {
+            val nw = getCenterAndMass(t.nw)
+            val ne = getCenterAndMass(t.ne)
+            val sw = getCenterAndMass(t.sw)
+            val se = getCenterAndMass(t.se)
+            t.mass = nw.mass + ne.mass + sw.mass + se.mass
+            t.center = new Point((nw.coordinates.x * nw.mass + ne.coordinates.x * ne.mass + sw.coordinates.x * sw.mass + se.coordinates.x * se.mass) / (nw.mass + ne.mass + sw.mass + se.mass),
+              (nw.coordinates.y * nw.mass + ne.coordinates.y * ne.mass + sw.coordinates.y * sw.mass + se.coordinates.y * se.mass) / (nw.mass + ne.mass + sw.mass + se.mass))
+            BodyImpl(t.center, t.mass)
+          }
+          case b: BodyImpl => b
+        }
+      }
+    }
+
+  }
 }
