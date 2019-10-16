@@ -17,7 +17,7 @@ case object QuadNil extends QuadNode
 class Point(val x: Double, val y: Double)
 
 abstract class Body
-case class BodyImpl(coordinates: Point, mass: Double) extends Body
+case class BodyImpl(coordinates: Point, mass: Double, force: Double = 0) extends Body
 case object BodyNil extends Body
 
 object QuadNode {
@@ -128,5 +128,42 @@ object QuadNode {
       }
     }
 
+  }
+
+  def computeForces(bodies: Seq[BodyImpl], topLeft: Point, bottomRight: Point, theta: Double): Seq[(Double, BodyImpl)] = {
+    def getDistance(a: Point, b: Point): Double = {
+      Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))
+    }
+    @tailrec
+    def go(body: BodyImpl, finalNodes: Seq[(Double, QuadTree)], nodesToTraverse: Seq[QuadNode]):  Seq[(Double, QuadNode)] = {
+      nodesToTraverse match {
+        case Seq() => finalNodes
+        case _ =>
+          var newNodesToTraverse = Seq[QuadNode]()
+          var newFinalNodes = finalNodes
+          nodesToTraverse.foreach(node => {
+            node match {
+              case n: QuadTree =>
+                n.body match {
+                  case BodyNil =>
+                    val distance = getDistance(body.coordinates, n.center)
+                    if ((n.bottomRight.x - n.topLeft.x) / distance < theta) newFinalNodes = newFinalNodes :+ (distance, n)
+                    else {
+                      newNodesToTraverse = newNodesToTraverse :+ n.ne
+                      newNodesToTraverse = newNodesToTraverse :+ n.nw
+                      newNodesToTraverse = newNodesToTraverse :+ n.se
+                      newNodesToTraverse = newNodesToTraverse :+ n.sw
+                    }
+                  case b: BodyImpl => newFinalNodes =  newFinalNodes :+ (getDistance(b.coordinates, body.coordinates), n)
+                }
+            }
+          })
+          go(body, finalNodes, newNodesToTraverse)
+      }
+    }
+
+    val root = getQuadTree(bodies, topLeft, bottomRight)
+    getCenterAndMass(root)
+    _
   }
 }
