@@ -1,6 +1,7 @@
 package chapter5.exercise5
 
 import scala.annotation.tailrec
+import scala.collection.parallel.CollectionConverters._
 
 abstract class QuadNode
 case class QuadTree(topLeft: Point, bottomRight: Point, parent: QuadNode) extends QuadNode {
@@ -14,13 +15,20 @@ case class QuadTree(topLeft: Point, bottomRight: Point, parent: QuadNode) extend
 }
 case object QuadNil extends QuadNode
 
-class Point(val x: Double, val y: Double)
+class Point(val x: Double, val y: Double) {
+
+   def +(other: Point): Point = {
+     new Point(this.x + other.x, this.y + other.y)
+   }
+}
 
 abstract class Body
 case class BodyImpl(coordinates: Point, mass: Double, force: Double = 0) extends Body
 case object BodyNil extends Body
 
 object QuadNode {
+
+  val G = 6.67 * Math.pow(10, -11)
 
   def getQuadTree(bodies: Seq[BodyImpl], topLeft: Point, bottomRight: Point): QuadNode = {
     val root = QuadTree(topLeft, bottomRight, QuadNil)
@@ -130,40 +138,58 @@ object QuadNode {
 
   }
 
-  def computeForces(bodies: Seq[BodyImpl], topLeft: Point, bottomRight: Point, theta: Double): Seq[(Double, BodyImpl)] = {
-    def getDistance(a: Point, b: Point): Double = {
-      Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))
+  private def getDistance(a: Point, b: Point): Double = {
+    Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y))
+  }
+  private def getGravityForceVector(p: Point, pOther: Point, m: Double, mOther: Double, distance: Double): Point = {
+    val force =  m * mOther / Math.pow(distance, 2)
+    new Point((pOther.x - p.x) * force / distance, (pOther.y - p.y) * force / distance)
+  }
+
+  @tailrec
+  private def go(body: BodyImpl, force: Point, nodesToTraverse: Seq[QuadNode], theta: Double):  Point = {
+    nodesToTraverse match {
+      case Seq() => force
+      case _ =>
+        var newNodesToTraverse = Seq[QuadNode]()
+        var newForce = force
+        nodesToTraverse.foreach(node => {
+          node match {
+            case n: QuadTree =>
+              n.body match {
+                case BodyNil =>
+                  val distance = getDistance(body.coordinates, n.center)
+                  if ((n.bottomRight.x - n.topLeft.x) / distance < theta){
+                    newForce = newForce + getGravityForceVector(body.coordinates, n.center, body.mass, n.mass, distance)
+                  } else {
+                    newNodesToTraverse = newNodesToTraverse :+ n.ne
+                    newNodesToTraverse = newNodesToTraverse :+ n.nw
+                    newNodesToTraverse = newNodesToTraverse :+ n.se
+                    newNodesToTraverse = newNodesToTraverse :+ n.sw
+                  }
+                case b: BodyImpl =>
+                  val d = getDistance(b.coordinates, body.coordinates)
+                  if (d > 0) newForce =  newForce + getGravityForceVector(body.coordinates, b.coordinates, body.mass, b.mass, d)
+              }
+            case QuadNil =>
+          }
+        })
+        go(body, newForce, newNodesToTraverse, theta)
     }
-    @tailrec
-    def go(body: BodyImpl, finalNodes: Seq[(Double, QuadTree)], nodesToTraverse: Seq[QuadNode]):  Seq[(Double, QuadNode)] = {
-      nodesToTraverse match {
-        case Seq() => finalNodes
-        case _ =>
-          var newNodesToTraverse = Seq[QuadNode]()
-          var newFinalNodes = finalNodes
-          nodesToTraverse.foreach(node => {
-            node match {
-              case n: QuadTree =>
-                n.body match {
-                  case BodyNil =>
-                    val distance = getDistance(body.coordinates, n.center)
-                    if ((n.bottomRight.x - n.topLeft.x) / distance < theta) newFinalNodes = newFinalNodes :+ (distance, n)
-                    else {
-                      newNodesToTraverse = newNodesToTraverse :+ n.ne
-                      newNodesToTraverse = newNodesToTraverse :+ n.nw
-                      newNodesToTraverse = newNodesToTraverse :+ n.se
-                      newNodesToTraverse = newNodesToTraverse :+ n.sw
-                    }
-                  case b: BodyImpl => newFinalNodes =  newFinalNodes :+ (getDistance(b.coordinates, body.coordinates), n)
-                }
-            }
-          })
-          go(body, finalNodes, newNodesToTraverse)
-      }
-    }
+  }
+
+  //computes forces acting on bodies in parallel
+  def computeForcesParallel(bodies: Seq[BodyImpl], topLeft: Point, bottomRight: Point, theta: Double): Seq[(Point, BodyImpl)] = {
 
     val root = getQuadTree(bodies, topLeft, bottomRight)
     getCenterAndMass(root)
-    _
+    bodies.par.map(b => (go(b, new Point(0, 0), Seq(root), theta), b)).toList
+  }
+
+  def computeForcesSequential(bodies: Seq[BodyImpl], topLeft: Point, bottomRight: Point, theta: Double): Seq[(Point, BodyImpl)] = {
+
+    val root = getQuadTree(bodies, topLeft, bottomRight)
+    getCenterAndMass(root)
+    bodies.map(b => (go(b, new Point(0, 0), Seq(root), theta), b))
   }
 }
