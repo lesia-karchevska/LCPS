@@ -117,5 +117,12 @@ object Node {
       }
     }
   }
-
+  def insert[T](insKey: T, heap: HeapStruct[T]): HeapStruct[T] = {
+    var keyHeap = new HeapStruct[T] {
+      head = Some(new Node[T] {
+        key = Some(insKey)
+      })
+    }
+    union(heap, keyHeap)
+  }
 }
