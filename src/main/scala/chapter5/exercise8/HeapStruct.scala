@@ -10,10 +10,10 @@ class Node[T] {
   var degree: Int = 0
 }
 
-class HeapStruct[T](implicit ord:Ordering[T]) {
+class HeapStruct[T](implicit ord: Ordering[T]) {
   var head: Option[Node[T]] = None
 
-  def min:Option[T] = {
+  def min: Option[T] = {
     @tailrec
     def go(curr: Option[T], node: Option[Node[T]]): Option[T] = {
       node match {
@@ -29,12 +29,13 @@ class HeapStruct[T](implicit ord:Ordering[T]) {
         }
       }
     }
+
     go(None, head)
   }
 
 }
 
-object Node {
+object HeapStruct {
 
   def binomialLink[T](x: Node[T], y: Node[T]): Node[T] = {
     x.sibling = y.child
@@ -43,13 +44,14 @@ object Node {
     x.parent = Some(y)
     y
   }
-  def union[T](h1: HeapStruct[T], h2: HeapStruct[T])(implicit ord:Ordering[T]): HeapStruct[T] = {
+
+  def union[T](h1: HeapStruct[T], h2: HeapStruct[T])(implicit ord: Ordering[T]): HeapStruct[T] = {
     def merge(hl1: Option[Node[T]], hl2: Option[Node[T]]): Option[Node[T]] = {
       @tailrec
       def go(hl1: Option[Node[T]], hl2: Option[Node[T]], curr: Node[T], head: Node[T]): Node[T] = {
         (hl1, hl2) match {
           case (Some(n1), Some(n2)) =>
-            if(n1.degree > n2.degree) {
+            if (n1.degree > n2.degree) {
               curr.sibling = hl2
               go(hl1, n2.sibling, n2, head)
             } else {
@@ -67,6 +69,7 @@ object Node {
             head
         }
       }
+
       (hl1, hl2) match {
         case (Some(n1), Some(n2)) => {
           if (n1.degree > n2.degree) Some(go(hl1, n2.sibling, n2, n2))
@@ -77,6 +80,7 @@ object Node {
         case _ => None
       }
     }
+
     var newHead = merge(h1.head, h2.head)
 
     @tailrec
@@ -103,8 +107,9 @@ object Node {
       }
 
     }
+
     newHead match {
-      case None => new HeapStruct
+      case None => new HeapStruct[T]
       case Some(h) =>
         val x = h
         val next = x.sibling
@@ -114,7 +119,8 @@ object Node {
         }
     }
   }
-  def insert[T](insKey: T, heap: HeapStruct[T])(implicit ord:Ordering[T]): HeapStruct[T] = {
+
+  def insert[T](insKey: T, heap: HeapStruct[T])(implicit ord: Ordering[T]): HeapStruct[T] = {
     val keyHeap = new HeapStruct[T] {
       head = Some(new Node[T] {
         key = Some(insKey)
@@ -131,53 +137,53 @@ object Node {
         case Some(next) => go(next)
       }
     }
+
     Some(go(node))
   }
+
   @tailrec
-  private def reverse[T](curr: Node[T]): Unit = {
-    curr.parent match {
-      case None =>
-      case Some(x) =>
-        curr.sibling = Some(x)
-        x.parent = Some(curr)
-        reverse(x)
+  private def reverse[T](prev: Option[Node[T]], curr: Node[T], next: Option[Node[T]]): Node[T] = {
+    next match {
+      case None => curr
+      case Some(nx) =>
+        val newNext = nx.sibling
+        curr.sibling = prev
+        reverse(Some(curr), nx, newNext)
     }
   }
-  private def getReverseStruct[T](h: Node[T]): HeapStruct[T] = {
-    val reverseHead = last(h)
-    reverseHead match {
-      case None => new HeapStruct {
-        head = None
-      }
-      case Some(x) =>
-        reverse(x)
-        new HeapStruct {
-          head = reverseHead
+
+  private def getReverseStruct[T](oldHead: Option[Node[T]])(implicit ord: Ordering[T]): HeapStruct[T] = {
+    oldHead match {
+      case None => new HeapStruct[T] { head = None }
+      case Some(oh) =>
+        new HeapStruct[T]() {
+          head = Some(reverse(None, oh, oh.sibling))
         }
     }
   }
 
-  def extractMin[T](heap: HeapStruct[T])(implicit ord:Ordering[T]): Option[T] = {
+  def extractMin[T](heap: HeapStruct[T])(implicit ord: Ordering[T]): Option[T] = {
     heap.head match {
       case Some(node) =>
         @tailrec
-        def go(currPrev: Option[Node[T]], currMin: Node[T], next: Option[Node[T]]): (Node[T], Option[Node[T]]) = {
+        def go(minPrev: Option[Node[T]], currMin: Node[T], currPrev: Option[Node[T]], next: Option[Node[T]]): (Node[T], Option[Node[T]]) = {
           next match {
             case Some(x) =>
-              if (ord.compare(currMin.key.get, x.key.get) < 0) go(currPrev, currMin, x.sibling)
-              else go(x.parent, x, x.sibling)
+              if (ord.compare(currMin.key.get, x.key.get) < 0) go(minPrev, currMin, next, x.sibling)
+              else go(currPrev, x, next, x.sibling)
             case None =>
-              (currMin, currPrev)
+              (currMin, minPrev)
           }
         }
-        val minNodeInfo = go(node.parent, node, node.sibling)
+
+        val minNodeInfo = go(None, node, None, node.sibling)
         //removing minimum element from the list of roots:
         minNodeInfo match {
-          case (_, None) => heap.head = node.sibling
+          case (min, None) => heap.head = min.sibling
           case (min, Some(prev)) => prev.sibling = min.sibling
         }
         //get heap which root list is the reversed list of children of the minimal key
-        val minHeap = getReverseStruct(minNodeInfo._1)
+        val minHeap = getReverseStruct(minNodeInfo._1.child)
         val newHeap = union(heap, minHeap)
         heap.head = newHeap.head
         minNodeInfo._1.key
@@ -185,4 +191,27 @@ object Node {
         None
     }
   }
+
+  def decreaseKey[T](h: HeapStruct[T], node: Node[T], k: T)(implicit ord: Ordering[T]): Unit = {
+    if (ord.compare(node.key.get, k) > 0) {
+      node.key = Some(k)
+
+      @tailrec
+      def go(y: Node[T], z: Option[Node[T]]): Unit = {
+        z match {
+          case None =>
+          case Some(p) =>
+            if (ord.compare(node.key.get, p.key.get) < 0) {
+              val temp = node.key
+              node.key = p.key
+              p.key = temp
+              go(p, p.parent)
+            }
+        }
+      }
+
+      go(node, node.parent)
+    }
+  }
+
 }
