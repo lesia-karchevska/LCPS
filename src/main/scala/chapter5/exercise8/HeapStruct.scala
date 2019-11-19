@@ -1,6 +1,7 @@
 package chapter5.exercise8
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
 
 class Node[T] {
   var key: Option[T] = None
@@ -31,6 +32,43 @@ class HeapStruct[T](implicit ord: Ordering[T]) {
     }
 
     go(None, head)
+  }
+
+  def printHeapRow(start: Node[T]): ArrayBuffer[Node[T]] = {
+    val children: ArrayBuffer[Node[T]] = new ArrayBuffer[Node[T]]
+    def go(node: Node[T]): Unit = {
+      System.out.print(node.key.get + "; ")
+      node.child match {
+        case None =>
+        case Some(ch) => children.addOne(ch)
+      }
+      node.sibling match {
+        case None =>
+        case Some(next) =>
+          go(next)
+      }
+    }
+
+    go(start)
+    println
+    children
+  }
+
+  def printHeap(): Unit = {
+    def go(elements: ArrayBuffer[Node[T]]): Unit = {
+      if (elements.size > 0) {
+        elements.foreach(el => go(printHeapRow(el)))
+      }
+    }
+
+    head match {
+      case None =>
+      case Some(h) =>
+        val initial = new ArrayBuffer[Node[T]]
+        initial.addOne(h)
+        go(initial)
+    }
+
   }
 
 }
@@ -101,7 +139,7 @@ object HeapStruct {
                 case Some(prevElem) => prevElem.sibling = next
               }
               binomialLink(x, nextElem)
-              go(prev, nextElem, x.sibling)
+              go(prev, nextElem, nextElem.sibling)
             }
           }
       }
@@ -143,11 +181,12 @@ object HeapStruct {
 
   @tailrec
   private def reverse[T](prev: Option[Node[T]], curr: Node[T], next: Option[Node[T]]): Node[T] = {
+    curr.sibling = prev
     next match {
-      case None => curr
+      case None =>
+        curr
       case Some(nx) =>
         val newNext = nx.sibling
-        curr.sibling = prev
         reverse(Some(curr), nx, newNext)
     }
   }
@@ -166,21 +205,25 @@ object HeapStruct {
     heap.head match {
       case Some(node) =>
         @tailrec
-        def go(minPrev: Option[Node[T]], currMin: Node[T], currPrev: Option[Node[T]], next: Option[Node[T]]): (Node[T], Option[Node[T]]) = {
-          next match {
+        def go(minPrev: Option[Node[T]], min: Node[T], currPrev: Option[Node[T]], curr: Option[Node[T]]): (Node[T], Option[Node[T]]) = {
+          curr match {
             case Some(x) =>
-              if (ord.compare(currMin.key.get, x.key.get) < 0) go(minPrev, currMin, next, x.sibling)
-              else go(currPrev, x, next, x.sibling)
+              if (ord.compare(min.key.get, x.key.get) < 0) go(minPrev, min, curr, x.sibling)
+              else go(currPrev, x, curr, x.sibling)
             case None =>
-              (currMin, minPrev)
+              (min, minPrev)
           }
         }
 
-        val minNodeInfo = go(None, node, None, node.sibling)
+        val minNodeInfo = go(None, node, heap.head, node.sibling)
         //removing minimum element from the list of roots:
         minNodeInfo match {
           case (min, None) => heap.head = min.sibling
           case (min, Some(prev)) => prev.sibling = min.sibling
+        }
+        minNodeInfo._1.child match {
+          case Some(x) => x.parent = None
+          case None =>
         }
         //get heap which root list is the reversed list of children of the minimal key
         val minHeap = getReverseStruct(minNodeInfo._1.child)
