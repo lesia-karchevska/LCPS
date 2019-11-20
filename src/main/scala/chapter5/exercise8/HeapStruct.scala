@@ -48,16 +48,17 @@ class HeapStruct[T](implicit ord: Ordering[T]) {
           go(next)
       }
     }
-
     go(start)
-    println
     children
   }
 
   def printHeap(): Unit = {
     def go(elements: ArrayBuffer[Node[T]]): Unit = {
       if (elements.size > 0) {
-        elements.foreach(el => go(printHeapRow(el)))
+        val newChildren = new ArrayBuffer[Node[T]]
+        elements.foreach(el => newChildren.addAll(printHeapRow(el)))
+        println
+        go(newChildren)
       }
     }
 
