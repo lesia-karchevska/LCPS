@@ -10,28 +10,28 @@ object HeapTester extends App {
   var x: Int = rnd.nextInt(30)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
-  x = rnd.nextInt(30)
+  x = rnd.nextInt(300)
   h = HeapStruct.insert(x, h)
   print(x + "; ")
   println
@@ -50,8 +50,9 @@ object HeapTester extends App {
 
   println("Heap after extract min: ")
   h.printHeap
-  val min1 = h.min
+  var node = h.head.get.child.get.child.get.child.get
+  HeapStruct.decreaseKey(h, node, -1)
 
-  println("Heap after another min: ")
-  h.printHeap
+  println("Heap after decreasing key: ")
+  h.printHeap()
 }

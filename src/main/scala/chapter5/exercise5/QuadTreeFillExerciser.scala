@@ -36,7 +36,7 @@ object QuadTreeFillExerciser extends App {
 
   println("enter number of random bodies:")
   val num = scala.io.StdIn.readInt()
-  val bodies = Range(0, num).map(n => createRandomBody(10.0, 10.0, 200))
+  val bodies = Range(0, num).map(_ => createRandomBody(10.0, 10.0, 200))
   println("parallel computation time: " + Timed.timed {QuadNode.computeForcesParallel(bodies, topLeft, bottomRight, 0.8)})
   println("sequential computation time: " + Timed.timed {QuadNode.computeForcesSequential(bodies, topLeft, bottomRight, 0.8)})
 }

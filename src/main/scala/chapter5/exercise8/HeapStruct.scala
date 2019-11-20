@@ -202,6 +202,18 @@ object HeapStruct {
     }
   }
 
+  private def doActionOnChildren[T](childStart: Option[Node[T]], action: Node[T] => Unit): Unit = {
+    def go(n: Option[Node[T]]): Unit = {
+      n match {
+        case None =>
+        case Some(x) =>
+          action.apply(x)
+          go(x.sibling)
+      }
+    }
+    go(childStart)
+  }
+
   def extractMin[T](heap: HeapStruct[T])(implicit ord: Ordering[T]): Option[T] = {
     heap.head match {
       case Some(node) =>
@@ -222,10 +234,7 @@ object HeapStruct {
           case (min, None) => heap.head = min.sibling
           case (min, Some(prev)) => prev.sibling = min.sibling
         }
-        minNodeInfo._1.child match {
-          case Some(x) => x.parent = None
-          case None =>
-        }
+        doActionOnChildren[T](minNodeInfo._1.child, ch => { ch.parent = None })
         //get heap which root list is the reversed list of children of the minimal key
         val minHeap = getReverseStruct(minNodeInfo._1.child)
         val newHeap = union(heap, minHeap)
@@ -245,9 +254,9 @@ object HeapStruct {
         z match {
           case None =>
           case Some(p) =>
-            if (ord.compare(node.key.get, p.key.get) < 0) {
-              val temp = node.key
-              node.key = p.key
+            if (ord.compare(y.key.get, p.key.get) < 0) {
+              val temp = y.key
+              y.key = p.key
               p.key = temp
               go(p, p.parent)
             }
