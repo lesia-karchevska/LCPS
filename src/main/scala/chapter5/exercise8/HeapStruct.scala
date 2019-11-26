@@ -1,18 +1,12 @@
 package chapter5.exercise8
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-class Node[T] {
-  var key: Option[T] = None
-  var parent: Option[Node[T]] = None
-  var sibling: Option[Node[T]] = None
-  var child: Option[Node[T]] = None
-  var degree: Int = 0
-}
+class HeapStruct[T](implicit ord: Ordering[T]) extends Iterable[T]{
 
-class HeapStruct[T](implicit ord: Ordering[T]) {
-  var head: Option[Node[T]] = None
+  var heapHead: Option[Node[T]] = None
 
   def min: Option[T] = {
     @tailrec
@@ -31,7 +25,7 @@ class HeapStruct[T](implicit ord: Ordering[T]) {
       }
     }
 
-    go(None, head)
+    go(None, heapHead)
   }
 
   def printHeapRow(start: Node[T]): ArrayBuffer[Node[T]] = {
@@ -62,7 +56,7 @@ class HeapStruct[T](implicit ord: Ordering[T]) {
       }
     }
 
-    head match {
+    heapHead match {
       case None =>
       case Some(h) =>
         val initial = new ArrayBuffer[Node[T]]
@@ -72,6 +66,56 @@ class HeapStruct[T](implicit ord: Ordering[T]) {
 
   }
 
+  override def iterator: Iterator[T] = new BinomialIterator()
+
+  private class BinomialIterator extends Iterator[T] {
+
+    def initHasNextElement(): Boolean = {
+      heapHead match {
+        case None =>
+          false
+        case Some(x) =>
+          nextStack.push(x)
+          true
+      }
+    }
+
+    private val nextStack: mutable.Stack[Node[T]] = new mutable.Stack[Node[T]]()
+    private var hasNextElement: Boolean = initHasNextElement()
+
+    def BinomialIterator() {
+      heapHead match {
+        case None =>
+          hasNextElement = false
+        case Some(x) =>
+          hasNextElement = true
+          nextStack.push(x)
+      }
+    }
+
+    private def putToStackIfPresent(node: Option[Node[T]]) = {
+      node match {
+        case None =>
+        case Some(x) =>
+          nextStack.push(x)
+      }
+    }
+
+    override def hasNext: Boolean = {
+      hasNextElement
+    }
+
+    override def next(): T = {
+      if (!hasNextElement) throw new IndexOutOfBoundsException
+      else {
+        val elem = nextStack.pop()
+        putToStackIfPresent(elem.child)
+        putToStackIfPresent(elem.sibling)
+        hasNextElement = !nextStack.isEmpty
+        elem.key.get
+      }
+    }
+  }
 }
 
 object HeapStruct {
@@ -120,7 +164,7 @@ object HeapStruct {
       }
     }
 
-    var newHead = merge(h1.head, h2.head)
+    var newHead = merge(h1.heapHead, h2.heapHead)
 
     @tailrec
     def go(prev: Option[Node[T]], x: Node[T], next: Option[Node[T]]): Unit = {
@@ -154,14 +198,14 @@ object HeapStruct {
         val next = x.sibling
         go(None, x, next)
         new HeapStruct {
-          head = newHead
+          heapHead = newHead
         }
     }
   }
 
   def insert[T](insKey: T, heap: HeapStruct[T])(implicit ord: Ordering[T]): HeapStruct[T] = {
     val keyHeap = new HeapStruct[T] {
-      head = Some(new Node[T] {
+      heapHead = Some(new Node[T] {
         key = Some(insKey)
       })
     }
@@ -194,10 +238,10 @@ object HeapStruct {
 
   private def getReverseStruct[T](oldHead: Option[Node[T]])(implicit ord: Ordering[T]): HeapStruct[T] = {
     oldHead match {
-      case None => new HeapStruct[T] { head = None }
+      case None => new HeapStruct[T] { heapHead = None }
       case Some(oh) =>
         new HeapStruct[T]() {
-          head = Some(reverse(None, oh, oh.sibling))
+          heapHead = Some(reverse(None, oh, oh.sibling))
         }
     }
   }
@@ -215,7 +259,7 @@ object HeapStruct {
   }
 
   def extractMin[T](heap: HeapStruct[T])(implicit ord: Ordering[T]): Option[T] = {
-    heap.head match {
+    heap.heapHead match {
       case Some(node) =>
         @tailrec
         def go(minPrev: Option[Node[T]], min: Node[T], currPrev: Option[Node[T]], curr: Option[Node[T]]): (Node[T], Option[Node[T]]) = {
@@ -228,17 +272,17 @@ object HeapStruct {
           }
         }
 
-        val minNodeInfo = go(None, node, heap.head, node.sibling)
+        val minNodeInfo = go(None, node, heap.heapHead, node.sibling)
         //removing minimum element from the list of roots:
         minNodeInfo match {
-          case (min, None) => heap.head = min.sibling
+          case (min, None) => heap.heapHead = min.sibling
           case (min, Some(prev)) => prev.sibling = min.sibling
         }
         doActionOnChildren[T](minNodeInfo._1.child, ch => { ch.parent = None })
         //get heap which root list is the reversed list of children of the minimal key
         val minHeap = getReverseStruct(minNodeInfo._1.child)
         val newHeap = union(heap, minHeap)
-        heap.head = newHeap.head
+        heap.heapHead = newHeap.heapHead
         minNodeInfo._1.key
       case None =>
         None

@@ -50,9 +50,13 @@ object HeapTester extends App {
 
   println("Heap after extract min: ")
   h.printHeap
-  var node = h.head.get.child.get.child.get.child.get
+  var node = h.heapHead.get.child.get.child.get.child.get
   HeapStruct.decreaseKey(h, node, -1)
 
   println("Heap after decreasing key: ")
   h.printHeap()
+
+  println("printing heap elements: ")
+  val iter = h.iterator
+  while (iter.hasNext) println(iter.next())
 }
